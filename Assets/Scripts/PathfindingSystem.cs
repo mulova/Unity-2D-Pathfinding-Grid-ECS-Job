@@ -7,7 +7,7 @@ using Unity.Burst;
 
 namespace Pathfinding
 {
-    public class PathfindingSystem : JobComponentSystem
+    public partial class PathfindingSystem : SystemBase
     {
         NativeArray<Neighbour> neighbours;
         EntityQuery pathRequests;
@@ -17,11 +17,12 @@ namespace Pathfinding
 
         public bool canMoveDiag;
         public int  numberOfRequests = 0;
+        private JobHandle handle;
 
         protected override void OnCreate()
         {
             pathRequests = GetEntityQuery(typeof(Waypoint), ComponentType.ReadOnly<PathRequest>(), ComponentType.ReadOnly<Translation>(), ComponentType.ReadOnly<NavigationCapabilities>());
-            pathRequests.SetFilterChanged(typeof(PathRequest));
+            pathRequests.AddChangedVersionFilter(typeof(PathRequest));
 
             if (canMoveDiag)
             {
@@ -54,28 +55,28 @@ namespace Pathfinding
             neighbours.Dispose();
         }
 
-        protected override JobHandle OnUpdate(JobHandle inputDeps)
+        protected override void OnUpdate()
         {
+            handle.Complete();
+
             numberOfRequests = pathRequests.CalculateChunkCount();
-            if (numberOfRequests == 0) return inputDeps;
+            if (numberOfRequests == 0) return;
 
             //Schedule the findPath to build <Waypoints> Job
             FindPathJobChunk findPathJob = new FindPathJobChunk()
             {
-                    WaypointChunkBuffer                  = GetArchetypeChunkBufferType<Waypoint>(false),
-                    PathRequestsChunkComponent           = GetArchetypeChunkComponentType<PathRequest>(true),
-                    CellArray                            = RequiredExtensions.nodes,
-                    TranslationsChunkComponent           = GetArchetypeChunkComponentType<Translation>(true),
-                    NavigationCapabilitiesChunkComponent = GetArchetypeChunkComponentType<NavigationCapabilities>(true),
-                    Neighbors                            = neighbours,
-                    DimY                                 = worldSize.y,
-                    DimX                                 = worldSize.x,
-                    Iterations                           = IterationLimit,
-                    NeighborCount                        = neighbours.Length
+                WaypointChunkBuffer = this.GetBufferTypeHandle<Waypoint>(false),
+                PathRequestsChunkComponent = GetComponentTypeHandle<PathRequest>(true),
+                CellArray = RequiredExtensions.nodes,
+                TranslationsChunkComponent = GetComponentTypeHandle<Translation>(true),
+                NavigationCapabilitiesChunkComponent = GetComponentTypeHandle<NavigationCapabilities>(true),
+                Neighbors = neighbours,
+                DimY = worldSize.y,
+                DimX = worldSize.x,
+                Iterations = IterationLimit,
+                NeighborCount = neighbours.Length
             };
-            JobHandle jobHandle = findPathJob.Schedule(pathRequests, inputDeps);
-
-            return jobHandle;
+            handle = findPathJob.Schedule(pathRequests);
         }
 
         [BurstCompile(FloatPrecision.Low, FloatMode.Fast)]
@@ -85,13 +86,12 @@ namespace Pathfinding
             [ReadOnly] public int DimY;
             [ReadOnly] public int Iterations;
             [ReadOnly] public int NeighborCount;
-            [ReadOnly]  public NativeArray<Node>                        CellArray;
-            [WriteOnly] public ArchetypeChunkBufferType<Waypoint>       WaypointChunkBuffer;
-            [ReadOnly]  public ArchetypeChunkComponentType<PathRequest> PathRequestsChunkComponent;
+            [ReadOnly] public NativeArray<Node> CellArray;
+            [WriteOnly] public BufferTypeHandle<Waypoint> WaypointChunkBuffer;
+            [ReadOnly] public ComponentTypeHandle<PathRequest> PathRequestsChunkComponent;
             [ReadOnly] public NativeArray<Neighbour> Neighbors;
-            
-            [ReadOnly] public ArchetypeChunkComponentType<Translation>            TranslationsChunkComponent;
-            [ReadOnly] public ArchetypeChunkComponentType<NavigationCapabilities> NavigationCapabilitiesChunkComponent;
+            [ReadOnly] public ComponentTypeHandle<Translation> TranslationsChunkComponent;
+            [ReadOnly] public ComponentTypeHandle<NavigationCapabilities> NavigationCapabilitiesChunkComponent;
 
             public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex)
             {

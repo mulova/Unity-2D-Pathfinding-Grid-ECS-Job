@@ -122,7 +122,7 @@ namespace UnityTemplateProjects
                 Graphics.DrawMesh(pathfindingManager.obstacleMesh, trs, endPointMaterial, 0);
 
 
-                if (Input.GetMouseButton(0)) //LMB draw
+                if (Input.GetMouseButton(0) && Input.GetKey(KeyCode.LeftShift)) //LMB draw
                 {
                     if (mousePosition == lastMousePosition) return;
                     lastMousePosition = mousePosition;
@@ -132,7 +132,7 @@ namespace UnityTemplateProjects
                     pathfindingManager.UpdateMatrices();
                 }
 
-                if (Input.GetMouseButton(1)) //RMB erase
+                if (Input.GetMouseButton(0) && Input.GetKey(KeyCode.RightShift)) //RMB erase
                 {
                     if (mousePosition == lastMousePosition) return;
                     lastMousePosition = mousePosition;
@@ -142,15 +142,17 @@ namespace UnityTemplateProjects
                     pathfindingManager.UpdateMatrices();
                 }
 
-                //Set start&end nodes for custom path. 
-                if (Input.GetMouseButtonDown(2))
+                //Set start&end nodes for custom path.
+                var ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl) || Input.GetKey(KeyCode.LeftCommand) || Input.GetKey(KeyCode.RightCommand);
+                var opt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+                if (Input.GetMouseButton(0) && (ctrl || opt))
                 {
                     lastMousePosition = mousePosition;
 
                     mousePosition /= spacing;
                     pathfindingManager.SetNodeWalkable(new int2((int) mousePosition.x, (int) mousePosition.y));
 
-                    if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                    if (ctrl)
                     {
                         pathfindingManager.start = new Vector2Int((int) mousePosition.x, (int) mousePosition.y);
                     }

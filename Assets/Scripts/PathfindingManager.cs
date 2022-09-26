@@ -67,8 +67,8 @@ namespace Pathfinding
         private void OnEnable()
         {
             pathRenderer      = GetComponent<PathRenderer>();
-            pathfindingSystem = World.Active.GetExistingSystem<PathfindingSystem>();
-            entityManager     = World.Active.EntityManager;
+            pathfindingSystem = World.DefaultGameObjectInjectionWorld.GetExistingSystem<PathfindingSystem>();
+            entityManager     = World.DefaultGameObjectInjectionWorld.EntityManager;
             
             pathfindingSystem.canMoveDiag = canMoveDiag;
             
@@ -368,7 +368,7 @@ namespace Pathfinding
                 RequiredExtensions.nodes[GetIndex(new int2(x, y))] = node;
             }
             
-            World.Active.GetExistingSystem<PathfindingSystem>().worldSize = size;
+            World.DefaultGameObjectInjectionWorld.GetExistingSystem<PathfindingSystem>().worldSize = size;
             UpdateMatrices(); 
         }
         
